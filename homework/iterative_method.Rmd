@@ -1,6 +1,8 @@
 ---
 title: 'Homework: iterative method'
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include = FALSE}
@@ -38,11 +40,21 @@ auto_corr <- .9 # Corresponds to `\phi` above
 ar_precision_matvec <- function(v, auto_corr) {
   # Fill in: note that you can vectorize the calculation and do *not* need a for-loop. 
   # (Hint: how would you efficiently carry out a matrix-vector operation if the matrix has non-zero entries only along the sub or super diagonal?)
+  n = length(v)
+  subsup_diag = auto_corr * v
+  result = (1 + auto_corr^2) * v
+  result[1:(n-1)] = result[1:(n-1)] - subsup_diag[2:n]
+  result[2:n] = result[2:n] - subsup_diag[1:(n-1)]
+  result[1] = result[1] - auto_corr^2 * v[1]
+  result[n] = result[n] - auto_corr^2 * v[n]
+  result = result / (1 + auto_corr^2)
+  return(result)
 }
 
 ar_eig <- eigs_sym(
   ar_precision_matvec, args = auto_corr,
   # Fill in
+  k = 10, n = ar_length, which = "LM",
   opts = list(
     ncv = 100, # Spectrum distribution of AR-1 process is not very spread out on the extreme ends and is actually a hard case for Lanczos. So it helps to have more Lanczos vectors than the default for faster convergence.
     maxitr = 10^3, # Cap it just in case
@@ -55,6 +67,19 @@ Now, directly compute the eigen decomposition of $\boldsymbol{\Sigma}$ (not $\bo
 
 ```{r}
 # Fill in
+## function of generating correlation matrix of AR(1) process
+ar1_cor <- function(n, rho) {
+    exponent <- abs(matrix(1:n - 1, nrow = n, ncol = n, byrow = TRUE) - 
+                        (1:n - 1))
+    rho^exponent
+}
+Sigma = ar1_cor(ar_length, auto_corr)
+
+result_eigs_sym = eigs(Sigma, 10)
+result_eigen = eigen(Sigma, symmetric = TRUE)
+
+result = data.frame(eigs_sym = result_eigs_sym$values, eigen = result_eigen$values[1:10])
+knitr::kable(result)
 ```
 
 **Remark:** 
